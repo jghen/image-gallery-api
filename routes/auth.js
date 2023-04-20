@@ -13,14 +13,20 @@ const {
   validateName,
   validatePassword
 } = require("./validationMiddleware");
+const {authorize} = require('./authMiddleware');
 const { invalidCredentialsError } = require("../utils/hoc");
 
 router.use(jsend.middleware);
 
+//log out - clear cookie
+router.post("/logout", authorize, async (req, res, next) => {
+  return res.clearCookie("access_token").redirect("/login");
+});
+
 //create user - Sign up
 router.post( "/signup", jsonParser, validateEmail, validateName, validatePassword, async (req, res, next) => {
   const { name, email, password } = req.body;
-  console.log(name, email, password);
+  
 
   var salt = crypto.randomBytes(16);
 
@@ -37,6 +43,7 @@ router.post( "/signup", jsonParser, validateEmail, validateName, validatePasswor
 // log in user
 router.post( "/login", jsonParser, validateEmail, validatePassword, async (req, res, next) => {
   const { email, password } = req.body;
+  console.log(email, password, req);
 
   await userService.getOneByEmail(email).then((data) => {
     if (data === null) {
@@ -59,20 +66,29 @@ router.post( "/login", jsonParser, validateEmail, validatePassword, async (req, 
         token = jwt.sign(
           { id: data.id, email: data.email },
           process.env.TOKEN_SECRET,
-          { expiresIn: "2h" }
+          { expiresIn: "3h" }
         );
       } catch (err) {
         res
           .status(500)
-          .jsend.error("Something went wrong with creating JWT token");
+          .jsend.error("Something went wrong with creating JWT token:" + err.message);
       }
 
-      return res.status(200).jsend.success({
-        result: "You are logged in",
-        id: data.id,
-        email: data.email,
-        token: token,
-      });
+      return res
+        .cookie("access_token", token, {
+          httpOnly: true,
+          maxAge: 3 * 60 * 60 * 1000, //3h
+          // secure: true, // if production
+          // signed: true, // if signed
+        })
+        .status(200).jsend.success({
+          result: {
+            id: data.id,
+            email: data.email,
+            token: true,
+          },
+          message: "You are logged in"
+        });
     });
   });
 });

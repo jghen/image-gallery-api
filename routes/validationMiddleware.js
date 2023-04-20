@@ -62,6 +62,7 @@ module.exports = {
     const { email } = req.body;
     const isValid =
       /^\S+@\S+\.\S+$/.test(email) && email != null && typeof email == "string";
+      console.log(email, isValid, req)
 
     if (!isValid) {
       return notValidError("email", res);

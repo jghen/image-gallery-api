@@ -10,7 +10,7 @@ const authRouter = require('./routes/auth');
 const imagesRouter = require("./routes/images");
 
 const db = require("./models");
-db.sequelize.sync({ force: true });
+db.sequelize.sync({ force: false });
 
 const app = express();
 
@@ -21,7 +21,7 @@ const server = http.createServer(app);
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
 
 //routes

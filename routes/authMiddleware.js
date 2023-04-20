@@ -2,12 +2,12 @@ const jwt = require("jsonwebtoken");
 
 module.exports = {
   authorize: function (req, res, next) {
-    const token = req.headers.authorization?.split(" ")[1];
+    const token = req.cookies.access_token;
+    // const token = req.signedCookies.access_token; //if signed: true.
 
     if (!token) {
-      return res
-        .status(401)
-        .jsend.fail({ result: {}, message: "JWT token not provided" });
+      res.clearCookie("access_token");
+      return res.redirect("/login");
     }
 
     try {
@@ -16,9 +16,8 @@ module.exports = {
       req.email = decodedToken.email;
       return next();
     } catch (err) {
-      return res
-        .status(401)
-        .jsend.fail({ result: {}, message: "Unvalid jwt token provided" });
+      res.clearCookie("access_token");
+      return res.redirect('/login');
     }
   },
 };

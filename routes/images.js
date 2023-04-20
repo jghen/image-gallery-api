@@ -11,25 +11,19 @@ const ImageService = require("../services/ImageService");
 const imageService = new ImageService(db);
 
 //middleware:
-const {
-  uploadImage,
-  deleteImage,
-  getAllImages,
-  getOneImage,
-} = require("../services/s3Service");
+const { uploadImage, deleteImage, getAllImages, getOneImage, } = require("../services/s3Service");
+const { validateUserId, validateFileInfo, validateImageId, } = require("./validationMiddleware");
 const { authorize } = require("./authMiddleware");
-const {
-  validateUserId,
-  validateFileInfo,
-  validateImageId,
-} = require("./validationMiddleware");
-const { notFoundError } = require("../utils/hoc");
+const { notFoundError, notProvidedError } = require("../utils/hoc");
 
-router.use(jsend.middleware);
 const bucket = process.env.AWS_BUCKET_NAME;
 const region = process.env.AWS_BUCKET_REGION;
 
-const getEncodedUrl = (obj) => `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(obj.Key)}`
+router.use(jsend.middleware);
+
+const getEncodedUrl = (obj) => {
+  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(obj.Key)}`
+}
 
 //get one
 router.get(
@@ -38,11 +32,14 @@ router.get(
   validateUserId,
   validateImageId(uuidv4),
   async function (req, res, next) {
+
     const { key } = req.params;
+    
     let image;
     try {
-      image = await s3Service.getOneImage(key)
-    } catch (error) {
+      image = await s3Service.getOneImage(key);
+      console.log('--image:',image);
+    } catch (err) {
       notFoundError('image', res);
       console.log(err.message);
     }
@@ -61,7 +58,6 @@ router.get("/", async function (req, res, next) {
     console.error(err.message);
   }
 
-  
   // Extract the URLs and send to frontend
   const result = images.Contents.map((obj) => {
     return {
@@ -69,6 +65,7 @@ router.get("/", async function (req, res, next) {
       key: obj.key,
     };
   });
+  console.log('result:', result);
 
   // remember to decode urls in the frontend:
   // const decodedUrl = decodeURIComponent(encodedUrl);
@@ -90,21 +87,17 @@ router.post(
   validateFileInfo,
   uploadImage.single("image"),
   async (req, res, next) => {
+    
     const { file } = req;
-    const { imageId } = req.params; // add id as uuid to front-end
+    const { imageId } = req.params; // add id as uuid to front-end.
     const { title, subtitle, text } = req.body;
     console.log("--req.file:", file);
 
+    if(file==null) notProvidedError('file', res);
+
     let db_image;
     try {
-      db_image = await imageService.create(
-        imageId,
-        location,
-        file.filename,
-        title,
-        subtitle,
-        text
-      );
+      db_image = await imageService.create( imageId, location, file.filename, title, subtitle, text );
       console.log("--db-saved-img:", db_image);
     } catch (err) {
       console.error(`Error uploading image: ${err.message}`);
