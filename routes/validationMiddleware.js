@@ -22,10 +22,10 @@ module.exports = {
     next();
   },
 
-  validateImageId: async function (req, res, next) {
+  validateImageId: (uuid)=>async function (req, res, next) {
     const { imageId } = req.params;
 
-    if (!uuidv4.validate(id)) {
+    if (!uuid.validate(id)) {
       return notValidError("imageId", res);
     }
 

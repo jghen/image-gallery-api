@@ -10,6 +10,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.DataTypes.STRING,
         allowNull: false,
       },
+      location: {
+        type: Sequelize.DataTypes.STRING,
+        allowNull: false,
+      },
       title: {
         type: Sequelize.DataTypes.STRING,
         allowNull: false,
@@ -27,12 +31,12 @@ module.exports = (sequelize, Sequelize) => {
     }
   );
 
-  Image.associate = function (models) {
-    Image.belongsTo(models.User, {
-      foreignKey: { allowNull: false },
-      onDelete: "CASCADE",
-    });
-  };
+  // Image.associate = function (models) {
+  //   Image.belongsTo(models.User, {
+  //     foreignKey: { allowNull: false },
+  //     onDelete: "CASCADE",
+  //   });
+  // };
 
   return Image;
 };

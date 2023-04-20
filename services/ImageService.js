@@ -4,32 +4,32 @@ class ImageService {
     this.Image = db.Image;
   }
 
-  async getAll(userId) {
+  async getAll() {
     return await this.Image.findAll({
-      where: {UserId: userId}
+      where: {}
     });
   }
 
-  async getOneById(imageId, userId) {
+  async getOneById(imageId) {
     return await this.Image.findOne({
-      where: { id: imageId, UserId: userId },
+      where: { id: imageId},
     });
   }
 
-  async create(imageId, userId, imageName, title, subtitle, text) {
+  async create(imageId, location, imageName, title, subtitle, text) {
     return await this.Image.create({
       id: imageId,
+      location: location,
       name: imageName,
       title: title,
       subtitle: subtitle,
       description: text,
-      UserId: userId
     });
   }
 
-  async delete(imageId, userId) {
+  async delete(imageId) {
     return await this.Image.destroy({
-      where:{id: imageId, UserId: userId},
+      where:{id: imageId},
     });
   }
 }

@@ -30,8 +30,8 @@ module.exports = {
 
   alreadyExistsError: function (typeOfData, data, res) {
     return res.status(400).jsend.fail({
+      result: {current: data},
       message: `${typeOfData} already exists`,
-      current: data,
     });
   },
 

@@ -10,7 +10,7 @@ const authRouter = require('./routes/auth');
 const imagesRouter = require("./routes/images");
 
 const db = require("./models");
-db.sequelize.sync({ force: false });
+db.sequelize.sync({ force: true });
 
 const app = express();
 

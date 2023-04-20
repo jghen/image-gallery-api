@@ -31,12 +31,12 @@ module.exports = (sequelize, Sequelize) => {
     }
   );
 
-  User.associate = function (models) {
-    User.hasMany(models.Image, {
-      foreignKey: { allowNull: false },
-      onDelete: "CASCADE",
-    });
-  };
+  // User.associate = function (models) {
+  //   User.hasMany(models.Image, {
+  //     foreignKey: { allowNull: false },
+  //     onDelete: "CASCADE",
+  //   });
+  // };
 
   return User;
 };

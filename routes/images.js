@@ -7,25 +7,73 @@ const { v4: uuidv4 } = require("uuid");
 
 //Db and services:
 const db = require("../models");
-const UserService = require("../services/UserService");
 const ImageService = require("../services/ImageService");
-const userService = new UserService(db);
 const imageService = new ImageService(db);
 
 //middleware:
-const { upload } = require("../services/uploadService");
+const {
+  uploadImage,
+  deleteImage,
+  getAllImages,
+  getOneImage,
+} = require("../services/s3Service");
 const { authorize } = require("./authMiddleware");
-const { validateUserId, validateFileInfo, validateImageId } = require("./validationMiddleware");
+const {
+  validateUserId,
+  validateFileInfo,
+  validateImageId,
+} = require("./validationMiddleware");
+const { notFoundError } = require("../utils/hoc");
 
 router.use(jsend.middleware);
+const bucket = process.env.AWS_BUCKET_NAME;
+const region = process.env.AWS_BUCKET_REGION;
 
-/* GET rooms listing. */
-router.get("/:imageId", authorize, validateUserId, validateImageId, async function (req, res, next) {
-  res.jsend.success({ result: {}, message: "this is images/:id" });
-});
+const getEncodedUrl = (obj) => `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(obj.Key)}`
 
+//get one
+router.get(
+  "/:key",
+  authorize,
+  validateUserId,
+  validateImageId(uuidv4),
+  async function (req, res, next) {
+    const { key } = req.params;
+    let image;
+    try {
+      image = await s3Service.getOneImage(key)
+    } catch (error) {
+      notFoundError('image', res);
+      console.log(err.message);
+    }
+    res.jsend.success({ result: {url:getEncodedUrl(image)}, message: "this is images/:key" });
+  }
+);
+
+//get all
 router.get("/", async function (req, res, next) {
-  res.jsend.success({ result: {}, message: "this is /images" });
+  let images;
+  try {
+    images = await s3Service.getAllImages();
+    console.log("--images response:", images);
+  } catch (err) {
+    notFoundError("images", res);
+    console.error(err.message);
+  }
+
+  
+  // Extract the URLs and send to frontend
+  const result = images.Contents.map((obj) => {
+    return {
+      url: getEncodedUrl(obj),
+      key: obj.key,
+    };
+  });
+
+  // remember to decode urls in the frontend:
+  // const decodedUrl = decodeURIComponent(encodedUrl);
+
+  res.jsend.success({ result: result, message: "retrieved all images" });
 });
 
 //upload image - must implement MIDDLEWARE:
@@ -38,22 +86,25 @@ router.post(
   jsonParser,
   authorize,
   validateUserId,
-  validateImageId,
+  validateImageId(uuidv4),
   validateFileInfo,
-  upload.single("image"),
+  uploadImage.single("image"),
   async (req, res, next) => {
-
-    const { file, userId } = req;
+    const { file } = req;
     const { imageId } = req.params; // add id as uuid to front-end
     const { title, subtitle, text } = req.body;
     console.log("--req.file:", file);
 
-    let s3_image;
     let db_image;
     try {
-      s3_image = await uploadService.upload(file);
-      db_image = await imageService.create( imageId, userId, file.filename, title, subtitle, text );
-      console.log("--s3-response:", s3_image);
+      db_image = await imageService.create(
+        imageId,
+        location,
+        file.filename,
+        title,
+        subtitle,
+        text
+      );
       console.log("--db-saved-img:", db_image);
     } catch (err) {
       console.error(`Error uploading image: ${err.message}`);
@@ -66,7 +117,7 @@ router.post(
 
     res.jsend.success({
       result: {
-        s3_image: s3_image,
+        s3_image: file.filename,
         db_image: db_image,
       },
       message: "successfully uploaded image",
@@ -80,25 +131,38 @@ router.delete(
   jsonParser,
   authorize,
   validateUserId,
-  validateImageId,
+  validateImageId(uuidv4),
   async function (req, res, next) {
-
     const { userId } = req;
     const { imageId } = req.params;
+    const key = imageId + ".jpg";
 
-    let deleted;
+    //delete from s3
+    let deleted_s3;
     try {
-      deleted = await imageService.delete(imageId, userId);
+      deleted_s3 = await s3Service.deleteImage(key);
     } catch (err) {
       res.jsend.fail({
-        result: { deleted: deleted },
-        message: `unable to delete image width id: ${imageId}`,
+        result: { deleted_s3: deleted_s3 },
+        message: `unable to delete image with id: ${imageId} and key: ${key}`,
+        error: err.message,
+      });
+    }
+
+    //delete from db
+    let deleted_db;
+    try {
+      deleted_db = await imageService.delete(imageId, userId);
+    } catch (err) {
+      res.jsend.fail({
+        result: { deleted_db: deleted_db },
+        message: `unable to delete image with id: ${imageId} and key: ${key}`,
         error: err.message,
       });
     }
 
     res.jsend.success({
-      result: { deleted: deleted },
+      result: { deleted_db: deleted_db, deleted_s3: deleted_s3 },
       message: "image deleted",
     });
   }
