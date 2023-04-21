@@ -20,7 +20,7 @@ router.use(jsend.middleware);
 
 //log out - clear cookie
 router.post("/logout", authorize, async (req, res, next) => {
-  return res.clearCookie("access_token").redirect("/login");
+  return res.clearCookie("access_token").redirect("/");
 });
 
 //create user - Sign up
@@ -43,7 +43,7 @@ router.post( "/signup", jsonParser, validateEmail, validateName, validatePasswor
 // log in user
 router.post( "/login", jsonParser, validateEmail, validatePassword, async (req, res, next) => {
   const { email, password } = req.body;
-  console.log(email, password, req);
+  console.log(email, password);
 
   await userService.getOneByEmail(email).then((data) => {
     if (data === null) {
@@ -74,18 +74,20 @@ router.post( "/login", jsonParser, validateEmail, validatePassword, async (req, 
           .jsend.error("Something went wrong with creating JWT token:" + err.message);
       }
 
+      
       return res
         .cookie("access_token", token, {
           httpOnly: true,
           maxAge: 3 * 60 * 60 * 1000, //3h
-          // secure: true, // if production
-          // signed: true, // if signed
+          secure: true, // if production
+          //signed: true, // if signed
+          sameSite: 'none',
         })
         .status(200).jsend.success({
           result: {
             id: data.id,
             email: data.email,
-            token: true,
+            token: token,
           },
           message: "You are logged in"
         });

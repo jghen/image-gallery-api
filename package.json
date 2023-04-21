@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.317.0",
     "aws-sdk": "^2.1331.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

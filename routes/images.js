@@ -3,7 +3,7 @@ var router = express.Router();
 const jsend = require("jsend");
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
-const { v4: uuidv4 } = require("uuid");
+const { validate: uuidValidate } = require("uuid");
 
 //Db and services:
 const db = require("../models");
@@ -12,7 +12,7 @@ const imageService = new ImageService(db);
 
 //middleware:
 const { uploadImage, deleteImage, getAllImages, getOneImage, } = require("../services/s3Service");
-const { validateUserId, validateFileInfo, validateImageId, } = require("./validationMiddleware");
+const { validateUserId, validateFileInfo, validateImageId, validateImage, } = require("./validationMiddleware");
 const { authorize } = require("./authMiddleware");
 const { notFoundError, notProvidedError } = require("../utils/hoc");
 
@@ -21,51 +21,62 @@ const region = process.env.AWS_BUCKET_REGION;
 
 router.use(jsend.middleware);
 
-const getEncodedUrl = (obj) => {
-  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(obj.Key)}`
-}
+
 
 //get one
 router.get(
   "/:key",
   authorize,
   validateUserId,
-  validateImageId(uuidv4),
+  validateImageId(uuidValidate),
   async function (req, res, next) {
-
     const { key } = req.params;
-    
+
     let image;
     try {
-      image = await s3Service.getOneImage(key);
-      console.log('--image:',image);
+      image = await getOneImage(key);
+      console.log("--image:", image);
     } catch (err) {
-      notFoundError('image', res);
+      notFoundError("image", res);
       console.log(err.message);
     }
-    res.jsend.success({ result: {url:getEncodedUrl(image)}, message: "this is images/:key" });
+    res.jsend.success({
+      result: { url: encodeURI(image) },
+      message: "this is images/:key",
+    });
   }
 );
 
 //get all
 router.get("/", async function (req, res, next) {
-  let images;
+  //get s3 signed image urls
+  let imageUrls = null;
   try {
-    images = await s3Service.getAllImages();
-    console.log("--images response:", images);
+    imageUrls = await getAllImages();
+    console.log("--s3 response:", imageUrls);
   } catch (err) {
-    notFoundError("images", res);
+    notFoundError("Error:" + err.message + " Images", res);
     console.error(err.message);
   }
 
   // Extract the URLs and send to frontend
-  const result = images.Contents.map((obj) => {
-    return {
-      url: getEncodedUrl(obj),
-      key: obj.key,
-    };
-  });
-  console.log('result:', result);
+  const encodedUrls =  await imageUrls?.map((obj) => encodeURI(obj));
+
+  //get image data from db
+  let imageData = null;
+  try {
+    imageData = await imageService.getAll();
+    console.log("--image data response:", imageData);
+  } catch (err) {
+    notFoundError("Error:" + err.message + " Image Data", res);
+    console.error(err.message);
+  }
+
+  const result = {
+    encodedUrls: encodedUrls,
+    imageData: imageData
+  }
+  console.log(result)
 
   // remember to decode urls in the frontend:
   // const decodedUrl = decodeURIComponent(encodedUrl);
@@ -80,24 +91,32 @@ router.get("/", async function (req, res, next) {
 
 router.post(
   "/:imageId",
-  jsonParser,
   authorize,
-  validateUserId,
-  validateImageId(uuidv4),
-  validateFileInfo,
   uploadImage.single("image"),
+  validateUserId,
+  validateImageId(uuidValidate),
+  validateFileInfo,
+  validateImage,
   async (req, res, next) => {
-    
     const { file } = req;
     const { imageId } = req.params; // add id as uuid to front-end.
     const { title, subtitle, text } = req.body;
     console.log("--req.file:", file);
+    console.log("--req.imageId:", imageId);
+    console.log("--req.body:", title, subtitle, text);
 
-    if(file==null) notProvidedError('file', res);
+    if (!file) notProvidedError("file", res);
 
     let db_image;
     try {
-      db_image = await imageService.create( imageId, location, file.filename, title, subtitle, text );
+      db_image = await imageService.create(
+        imageId,
+        file.originalname,
+        file.location,
+        title,
+        subtitle,
+        text
+      );
       console.log("--db-saved-img:", db_image);
     } catch (err) {
       console.error(`Error uploading image: ${err.message}`);
@@ -110,7 +129,6 @@ router.post(
 
     res.jsend.success({
       result: {
-        s3_image: file.filename,
         db_image: db_image,
       },
       message: "successfully uploaded image",
@@ -124,7 +142,7 @@ router.delete(
   jsonParser,
   authorize,
   validateUserId,
-  validateImageId(uuidv4),
+  validateImageId(uuidValidate),
   async function (req, res, next) {
     const { userId } = req;
     const { imageId } = req.params;
@@ -133,7 +151,7 @@ router.delete(
     //delete from s3
     let deleted_s3;
     try {
-      deleted_s3 = await s3Service.deleteImage(key);
+      deleted_s3 = await deleteImage(key);
     } catch (err) {
       res.jsend.fail({
         result: { deleted_s3: deleted_s3 },

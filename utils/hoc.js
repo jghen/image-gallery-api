@@ -3,8 +3,8 @@ module.exports = {
     return /^[a-zA-Z ]+$/.test(str) && str != null && typeof str == "string";
   },
 
-  validateStringWithNumbers: function (str) {
-    return /^[a-zA-Z0-9 ]+$/.test(str) && str != null && typeof str == "string";
+  isString: function (str) {
+    return str != null && typeof str == "string";
   },
 
   notFoundError: function (typeOfData, res) {
@@ -48,4 +48,8 @@ module.exports = {
       message: "Incorrect email or password",
     });
   },
+  getFileExtension: function (originalname) {
+    if (!originalname) return false;
+    return `.${originalname.split('.').slice(-1)}`;
+  }
 };

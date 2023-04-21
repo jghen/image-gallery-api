@@ -1,27 +1,44 @@
-const { ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand, S3Client } = require("@aws-sdk/client-s3");
+const {
+  ListObjectsV2Command,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  S3Client,
+} = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
+const { getFileExtension } = require("../utils/hoc");
 
 const s3Client = new S3Client({
-  credentials: {accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,},
-  region: process.env.AWS_BUCKET_REGION
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+  region: process.env.AWS_BUCKET_REGION,
 });
 
 const bucket = process.env.AWS_BUCKET_NAME;
 
 const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image')) {
+  let fileError;
+  console.log(file);
+  if (file.mimetype.startsWith("image")) {
     cb(null, true);
   } else {
-    cb(new Error('Not an image! Please upload images only.'), false);
+    fileError = `mimetype must be image. file: ${fileExt}`;
+    req.mimetypeError = fileError;
+    cb(null, false, new Error(fileError)); //reject file
   }
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-  const ext = file.originalname.split('.').slice(-1);
-  if (allowedExtensions.includes(ext)) {
+  const allowedExt = [".jpg", ".jpeg", ".png", ".gif"];
+  const fileExt = getFileExtension(file.originalname);
+  if (allowedExt.includes(fileExt)) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files with extensions .jpg, .jpeg, .png, and .gif are allowed.'), false);
+    fileError = `file extension: ${fileExt}. allowed: ${allowedExt.join(
+      " "
+    )}. `;
+    req.fileExtensionError = fileError;
+    cb(null, false, new Error(fileError)); //reject file
   }
 };
 
@@ -33,7 +50,7 @@ const s3storage = multerS3({
     cb(null, Object.assign({}, req.body));
   },
   key: function (req, file, cb) {
-    const ext = file.originalname.split('.').slice(-1);
+    const ext = getFileExtension(file.originalname);
     cb(null, req.params.imageId + ext);
   },
 });
@@ -48,24 +65,50 @@ const uploadImage = multer({
 });
 
 //get one
-async function getOneImage (key) {
-  var params = { Bucket: bucket, Key: key, };
+async function getOneImage(key) {
+  var params = { Bucket: bucket, Key: key };
   const command = new GetObjectCommand(params);
-  return await s3Client.send(command);
-};
+  // return await s3Client.send(command);
+  return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+}
 
 //get all
-async function getAllImages () {
-  var params = { Bucket: bucket};
-  const command = new ListObjectsV2Command(params);
-  return await s3Client.send(command);
-};
+async function getAllImages() {
+
+  //get all
+  let images;
+  try {
+    var params = { Bucket: bucket };
+    const command = new ListObjectsV2Command(params);
+    images = await s3Client.send(command);
+    console.log('--s3 images',images);
+  } catch (error) {
+    return error.message;
+  }
+
+  if(images?.KeyCount === 0) return [];
+
+  //loop and sign all
+  let signedUrls;
+  try {
+    signedUrls = await Promise.all(images?.Contents.map(async (image) => {
+      const newParams = { Bucket: bucket, Key: image.Key };
+      const newCommand = new GetObjectCommand(newParams);
+      const signedUrl = await getSignedUrl(s3Client, newCommand, { expiresIn: 3600 });
+      return signedUrl;
+    }));
+  } catch (error) {
+    return error.message;
+  }
+  console.log(signedUrls)
+  return signedUrls;
+}
 
 //delete
-async function deleteImage (key) {
-  var params = { Bucket: bucket, Key: key, };
+async function deleteImage(key) {
+  var params = { Bucket: bucket, Key: key };
   const command = new DeleteObjectCommand(params);
   return await s3Client.send(command);
-};
+}
 
-module.exports =  {uploadImage, deleteImage, getOneImage, getAllImages} ;
+module.exports = { uploadImage, deleteImage, getOneImage, getAllImages };

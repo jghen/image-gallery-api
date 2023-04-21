@@ -1,6 +1,6 @@
 const {
   validateString,
-  validateStringWithNumbers,
+  isString,
   notFoundError,
   notValidError,
   notProvidedError,
@@ -22,29 +22,44 @@ module.exports = {
     next();
   },
 
-  validateImageId: (uuid)=>async function (req, res, next) {
-    const { imageId } = req.params;
+  validateImageId: (uuidValidate) =>
+    async function (req, res, next) {
+      const { imageId } = req.params;
 
-    if (!uuid.validate(id)) {
-      return notValidError("imageId", res);
-    }
+      if (!uuidValidate(imageId)) {
+        return notValidError("imageId", res);
+      }
 
-    if (imageId == null) {
-      return notProvidedError("imageId", res);
+      if (imageId == null) {
+        return notProvidedError("imageId", res);
+      }
+
+      next();
+    },
+
+  validateFileInfo: async function (req, res, next) {
+    const { title, subtitle, text } = req.body;
+    const fileInfo = [title, subtitle, text];
+    const fileInfoValid = fileInfo.every((str) => isString(str));
+    console.log("--file info:", fileInfo, fileInfoValid);
+
+    if (!fileInfoValid) {
+      return notValidError("title/subtitle/desctiprion", res);
     }
 
     next();
   },
 
-  validateFileInfo: async function (req, res, next) {
-    const { title, subtitle, text } = req.body;
-    const fileInfo = [title, subtitle, text];
-    const fileInfoValid = fileInfo.every((str) => validateStringWithNumbers(str));
+  validateImage: async function (req, res, next) {
+    const { fileExtensionError, mimetypeError } = req;
 
-    if (!fileInfoValid) {
-      return notValidError(fileInfo.join(" / "), res);
+    if (mimetypeError) {
+      return notProvidedError(mimetypeError + ". Mimetype image", res);
     }
 
+    if (fileExtensionError) {
+      return notValidError(fileExtensionError, res);
+    }
     next();
   },
 
@@ -62,7 +77,7 @@ module.exports = {
     const { email } = req.body;
     const isValid =
       /^\S+@\S+\.\S+$/.test(email) && email != null && typeof email == "string";
-      console.log(email, isValid, req)
+    console.log(email, isValid, req);
 
     if (!isValid) {
       return notValidError("email", res);

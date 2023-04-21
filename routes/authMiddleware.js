@@ -5,9 +5,10 @@ module.exports = {
     const token = req.cookies.access_token;
     // const token = req.signedCookies.access_token; //if signed: true.
 
+    console.log('token', token)
     if (!token) {
       res.clearCookie("access_token");
-      return res.redirect("/login");
+      return next()
     }
 
     try {
@@ -16,8 +17,9 @@ module.exports = {
       req.email = decodedToken.email;
       return next();
     } catch (err) {
+      //clear permissions
       res.clearCookie("access_token");
-      return res.redirect('/login');
+      return next();
     }
   },
 };

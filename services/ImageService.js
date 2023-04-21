@@ -16,11 +16,11 @@ class ImageService {
     });
   }
 
-  async create(imageId, location, imageName, title, subtitle, text) {
+  async create(imageId, imageName, location, title, subtitle, text) {
     return await this.Image.create({
       id: imageId,
-      location: location,
       name: imageName,
+      location: location,
       title: title,
       subtitle: subtitle,
       description: text,
