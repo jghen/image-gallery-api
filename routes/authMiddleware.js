@@ -8,7 +8,7 @@ module.exports = {
     console.log('token', token)
     if (!token) {
       res.clearCookie("access_token");
-      return next()
+      return next();
     }
 
     try {
