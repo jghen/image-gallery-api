@@ -21,6 +21,13 @@ module.exports = {
     });
   },
 
+  unauthorizedError: function (errorMessage, res) {
+    return res.status(401).jsend.fail({
+      result: {},
+      message: `Unauthorized: ${errorMessage}`,
+    });
+  },
+
   notProvidedError: function (typeOfData, res) {
     return res.status(400).jsend.fail({
       result: {},

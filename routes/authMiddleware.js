@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { notProvidedError, unauthorizedError } = require("../utils/hoc");
 
 module.exports = {
   authorize: function (req, res, next) {
@@ -8,7 +9,7 @@ module.exports = {
     console.log('token', token)
     if (!token) {
       res.clearCookie("access_token");
-      return next();
+      return unauthorizedError('jwt token not provided', res);
     }
 
     try {
@@ -19,7 +20,7 @@ module.exports = {
     } catch (err) {
       //clear permissions
       res.clearCookie("access_token");
-      return next();
+      return unauthorizedError('jwt token invalid', res);
     }
   },
 };
