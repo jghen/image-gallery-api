@@ -55,6 +55,18 @@ module.exports = {
       message: "Incorrect email or password",
     });
   },
+  deleteError: function (typeOfData, res) {
+    return res.status(400).jsend.fail({
+      result: {},
+      message: `unable to delete ${typeOfData}`,
+    });
+  },
+  uploadError: function (typeOfData, res) {
+    return res.status(400).jsend.fail({
+      result: {},
+      message: `unable to upload ${typeOfData}`,
+    });
+  },
   getFileExtension: function (originalname) {
     if (!originalname) return false;
     return `.${originalname.split('.').slice(-1)}`;

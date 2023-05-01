@@ -8,11 +8,7 @@ const userService = new UserService(db);
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
 const jwt = require("jsonwebtoken");
-const {
-  validateEmail,
-  validateName,
-  validatePassword
-} = require("./validationMiddleware");
+const { validateEmail, validateName, validatePassword } = require("./validationMiddleware");
 const {authorize} = require('./authMiddleware');
 const { invalidCredentialsError } = require("../utils/hoc");
 
@@ -26,7 +22,6 @@ router.post("/logout", authorize, async (req, res, next) => {
 //create user - Sign up
 router.post( "/signup", jsonParser, validateEmail, validateName, validatePassword, async (req, res, next) => {
   const { name, email, password } = req.body;
-  
 
   var salt = crypto.randomBytes(16);
 
@@ -43,7 +38,6 @@ router.post( "/signup", jsonParser, validateEmail, validateName, validatePasswor
 // log in user
 router.post( "/login", jsonParser, validateEmail, validatePassword, async (req, res, next) => {
   const { email, password } = req.body;
-  console.log(email, password);
 
   await userService.getOneByEmail(email).then((data) => {
     if (data === null) {

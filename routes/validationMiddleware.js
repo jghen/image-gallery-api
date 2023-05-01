@@ -37,14 +37,39 @@ module.exports = {
       next();
     },
 
+    validateKey: (uuidValidate) =>
+    async function (req, res, next) {
+      const { key } = req.params;
+      const splittedKey = key.split('.');
+      const imageId = splittedKey[0];
+      const fileExtension = splittedKey.slice(-1).join('');
+      const allowedExt = ["jpg", "jpeg", "png", "gif"];
+
+      if(!allowedExt.includes(fileExtension)) {
+        return notValidError("key", res);
+      }
+
+      if (!uuidValidate(imageId)) {
+        return notValidError("key (uuid)", res);
+      }
+
+      if (key == null) {
+        return notProvidedError("key", res);
+      }
+
+      next();
+    },
+
   validateFileInfo: async function (req, res, next) {
     const { title, subtitle, text } = req.body;
     const fileInfo = [title, subtitle, text];
     const fileInfoValid = fileInfo.every((str) => isString(str));
-    console.log("--file info:", fileInfo, fileInfoValid);
 
     if (!fileInfoValid) {
       return notValidError("title/subtitle/desctiprion", res);
+    }
+    if(!title) {
+      return notProvidedError('title is required. Title', res)
     }
 
     next();
@@ -77,7 +102,6 @@ module.exports = {
     const { email } = req.body;
     const isValid =
       /^\S+@\S+\.\S+$/.test(email) && email != null && typeof email == "string";
-    console.log(email, isValid, req);
 
     if (!isValid) {
       return notValidError("email", res);

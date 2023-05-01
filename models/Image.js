@@ -3,14 +3,10 @@ module.exports = (sequelize, Sequelize) => {
     "Image",
     {
       id: {
-        type: Sequelize.DataTypes.UUID,
+        type: Sequelize.DataTypes.STRING,
         primaryKey: true,
       },
       name: {
-        type: Sequelize.DataTypes.STRING,
-        allowNull: false,
-      },
-      location: {
         type: Sequelize.DataTypes.STRING,
         allowNull: false,
       },
