@@ -9,27 +9,12 @@ const { validate: uuidValidate } = require("uuid");
 const db = require("../models");
 const ImageService = require("../services/ImageService");
 const imageService = new ImageService(db);
-const {
-  uploadImage,
-  deleteImage,
-  getAllImages,
-} = require("../services/S3Service.js");
-
+const { upload, uploadImage, deleteImage, getAllImages, } = require("../services/S3Service.js");
 //middleware:
-const {
-  validateUserId,
-  validateFileInfo,
-  validateImageId,
-  validateImage,
-  validateKey,
-} = require("./validationMiddleware");
+const { validateUserId, validateFileInfo, validateImageId, validateImage, validateKey, } = require("./validationMiddleware");
 const { authorize } = require("./authMiddleware");
-const {
-  notFoundError,
-  notProvidedError,
-  deleteError,
-  uploadError,
-} = require("../utils/hoc");
+const { notFoundError, notProvidedError, deleteError, uploadError, notValidError, imageProcessingError, } = require("../utils/hoc");
+const { encodeImageToBlurhash, resizeImage } = require("../utils/imageProcessor");
 
 router.use(jsend.middleware);
 
@@ -70,7 +55,7 @@ router.get("/", async function (req, res, next) {
 router.post(
   "/:imageId",
   authorize,
-  uploadImage.single("image"),
+  upload.single("image"),
   validateUserId,
   // validateImageId(uuidValidate),
   validateFileInfo,
@@ -78,18 +63,63 @@ router.post(
   async (req, res, next) => {
     const { file } = req;
     const { title, subtitle, text } = req.body;
+    const {imageId} = req.params;
+    console.log('--this is req.file after upload:',file)
 
     if (!file) return notProvidedError("file", res);
+    if (!imageId) return notProvidedError("imageId", res);
+
+    // encode to blurhash
+    let imageBlurHash;
+    try {
+      imageBlurHash = await encodeImageToBlurhash(file.path);
+      console.log('--imageBlurHash',imageBlurHash);
+    } catch (error) {
+      console.log(error.message)
+      imageProcessingError('Cannot make blurhash');
+    }
+
+    //resize
+    let resized;
+    try {
+      resized = await resizeImage(file.path);
+      console.log('--resized',resized);
+    } catch (error) {
+      console.log(error.message);
+      imageProcessingError('Cannot resize');
+    }
+
+    if(Buffer.isBuffer(resized)===false) {
+      return notValidError('Buffer',res)
+    }
+
+    // upload to s3
+    let s3_image = null;
+    try {
+      s3_image = await uploadImage(resized, imageId);
+      console.log(s3_image);
+    } catch (error) {
+      return res.jsend.fail({
+        result: {},
+        message: `Error uploading image to s3`,
+        error: error.message,
+      });
+    }
+
+    if(!s3_image) {
+      return notValidError('file', res);
+    }
 
     let db_image = null;
     try {
       db_image = await imageService.create(
-        file.key,
-        file.originalname,
+        imageId,
+        imageBlurHash, //this is the name?
         title,
         subtitle,
         text
       );
+      console.log('db_image:',db_image);
     } catch (err) {
       return res.jsend.fail({
         result: {},
@@ -120,7 +150,6 @@ router.delete(
   // validateKey(uuidValidate),
   async function (req, res, next) {
     const { key } = req.params; //this is now the key
-    console.log("got here", key);
 
     //delete from db
     let deleted_db = null;

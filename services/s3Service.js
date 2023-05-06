@@ -4,6 +4,7 @@ const {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -47,27 +48,53 @@ const multerFilter = (req, file, cb) => {
   }
 };
 
-const s3storage = multerS3({
-  s3: getClient(),
-  bucket: bucket,
-  contentType: multerS3.AUTO_CONTENT_TYPE,
-  cacheControl: "max-age=31536000",
-  metadata: function (req, file, cb) {
-    cb(null, Object.assign({}, file.originalname));
-  },
-  key: function (req, file, cb) {
-    cb(null, req.params.imageId);
-  },
-});
+// const s3storage = multerS3({
+//   s3: getClient(),
+//   bucket: bucket,
+//   contentType: multerS3.AUTO_CONTENT_TYPE,
+//   cacheControl: "max-age=31536000",
+//   metadata: function (req, file, cb) {
+//     cb(null, Object.assign({}, file.originalname));
+//   },
+//   key: function (req, file, cb) {
+//     cb(null, req.params.imageId);
+//   },
+// });
+
+const storage = multer.diskStorage({
+  destination: '/tmp', // store in local filesystem
+  filename: function (req, file, cb) {
+    cb(null, req.params.imageId) // this is also the key
+  }
+})
 
 //upload
-const uploadImage = multer({
-  storage: s3storage,
+const upload = multer({
+  storage: storage,
   limits: {
     fileSize: 1024 * 1024 * 10, //  allowing only 10 MB files
   },
   fileFilter: multerFilter,
 });
+
+//upload picture
+async function uploadImage (buffer, key) {
+ try {
+  const input = {
+    Bucket: bucket,
+    Key: key,
+    Body: buffer //should be blob?
+  };
+  const command = new PutObjectCommand(input);
+  const response = await getClient().send(command);
+  console.log(response);
+  return response;
+ } catch (error) {
+  console.log(error.message)
+  return null;
+ }
+  
+}
 
 //get one
 async function getOneImage(key) {
@@ -152,4 +179,4 @@ async function deleteImage(key) {
   }
 }
 
-module.exports = { uploadImage, deleteImage, getOneImage, getAllImages };
+module.exports = { upload, uploadImage, deleteImage, getOneImage, getAllImages };

@@ -67,6 +67,12 @@ module.exports = {
       message: `unable to upload ${typeOfData}`,
     });
   },
+  imageProcessingError: function (typeOfData, res) {
+    return res.status(400).jsend.fail({
+      result: {},
+      message: `unable process image: ${typeOfData}`,
+    });
+  },
   getFileExtension: function (originalname) {
     if (!originalname) return false;
     return `.${originalname.split('.').slice(-1)}`;

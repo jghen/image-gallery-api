@@ -16,14 +16,19 @@ class ImageService {
     });
   }
 
-  async create(imageId, imageName, title, subtitle, text) {
-    return await this.Image.create({
-      id: imageId,
-      name: imageName,
-      title: title,
-      subtitle: subtitle,
-      description: text,
-    });
+  async create(imageId, imageHash, title, subtitle, text) {
+    try {
+      return await this.Image.create({
+        id: imageId,
+        name: imageHash,
+        title: title,
+        subtitle: subtitle,
+        description: text,
+      });
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
   }
 
   async deleteOne(imageId) {
