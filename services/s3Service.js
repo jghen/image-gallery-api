@@ -3,13 +3,11 @@ const {
   GetObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
-  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const multer = require("multer");
-const multerS3 = require("multer-s3");
 const { getFileExtension } = require("../utils/hoc");
 
 const getClient = () => {
@@ -47,19 +45,6 @@ const multerFilter = (req, file, cb) => {
     cb(null, false, new Error(fileError)); //reject file
   }
 };
-
-// const s3storage = multerS3({
-//   s3: getClient(),
-//   bucket: bucket,
-//   contentType: multerS3.AUTO_CONTENT_TYPE,
-//   cacheControl: "max-age=31536000",
-//   metadata: function (req, file, cb) {
-//     cb(null, Object.assign({}, file.originalname));
-//   },
-//   key: function (req, file, cb) {
-//     cb(null, req.params.imageId);
-//   },
-// });
 
 const storage = multer.diskStorage({
   destination: '/tmp', // store in local filesystem
@@ -141,7 +126,6 @@ async function getAllImages() {
 
 async function deleteImage(key) {
   console.log("deleting s3");
-  // const params = { Bucket: bucket, Key: key };
   console.log(key, typeof key);
 
   //check if exists
@@ -153,8 +137,8 @@ async function deleteImage(key) {
   } catch (error) {
     return error.message;
   }
-  const exists = images?.Contents?.filter((image) => image.Key == key);
-  if (exists) console.log("key exists!");
+  const exists = images?.Contents?.some((image) => image.Key == key);
+  if (!exists) return null;
 
   //delete object:
   const input = {
