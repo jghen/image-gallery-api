@@ -16,7 +16,7 @@ const encodeImageToBlurhash = (path) =>
   const resizeImage = (path) =>
   new Promise((resolve, reject) => {
     sharp(path)
-      .resize({ width: 700 })
+      .resize({ width: 1200 })
       .toBuffer((err, buffer, ) => {
         if (err) return reject(err);
         resolve(buffer);
