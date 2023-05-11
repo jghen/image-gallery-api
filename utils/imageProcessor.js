@@ -13,16 +13,15 @@ const encodeImageToBlurhash = (path) =>
       });
   });
 
-  const resizeImage = (path) =>
+const resizeImage = (path) =>
   new Promise((resolve, reject) => {
     sharp(path)
-      .resize({ width: 1000 })
+      .resize({ width: 800 }, null, { withoutEnlargenment: true, quality: 75 })
       .withMetadata()
-      .toBuffer((err, buffer, ) => {
+      .toBuffer((err, buffer) => {
         if (err) return reject(err);
         resolve(buffer);
       });
   });
 
-
-module.exports = {resizeImage, encodeImageToBlurhash};
+module.exports = { resizeImage, encodeImageToBlurhash };
