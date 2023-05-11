@@ -3,7 +3,6 @@ var router = express.Router();
 const jsend = require("jsend");
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
-const { validate: uuidValidate } = require("uuid");
 
 //Db and services:
 const db = require("../models");

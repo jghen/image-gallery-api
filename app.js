@@ -13,7 +13,6 @@ const authRouter = require('./routes/auth');
 const imagesRouter = require("./routes/images");
 
 
-
 const app = express();
 
 const port = process.env.PORT || "3000";
