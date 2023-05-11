@@ -5,12 +5,14 @@ const cors = require("cors");
 const logger = require("morgan");
 const cookieParser = require("cookie-parser");
 
+const db = require("./models");
+db.sequelize.sync({ force: false });
+
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
 const imagesRouter = require("./routes/images");
 
-const db = require("./models");
-db.sequelize.sync({ force: false });
+
 
 const app = express();
 

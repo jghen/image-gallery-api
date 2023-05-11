@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const jsend = require("jsend");
 const router = express.Router();
