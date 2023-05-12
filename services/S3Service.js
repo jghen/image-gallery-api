@@ -71,11 +71,8 @@ async function uploadImage (buffer, key) {
     Body: buffer //should be blob?
   };
   const command = new PutObjectCommand(input);
-  const response = await getClient().send(command);
-  console.log(response);
-  return response;
+  return await getClient().send(command);
  } catch (error) {
-  console.log(error.message)
   return null;
  }
   
@@ -97,10 +94,12 @@ async function getAllImages() {
     const command = new ListObjectsV2Command(params);
     images = await getClient().send(command);
   } catch (error) {
-    return error.message;
+    return null;
   }
 
-  if (images?.KeyCount === 0) return [];
+  if (images?.KeyCount === 0) {
+    return [];
+  }
 
   //loop and sign all
   let signedUrls;
@@ -116,7 +115,7 @@ async function getAllImages() {
       })
     );
   } catch (error) {
-    return error.message;
+    return null;
   }
 
   return signedUrls;
@@ -125,9 +124,6 @@ async function getAllImages() {
 //delete
 
 async function deleteImage(key) {
-  console.log("deleting s3");
-  console.log(key, typeof key);
-
   //check if exists
   let images;
   try {
@@ -158,7 +154,6 @@ async function deleteImage(key) {
   try {
     return await getClient().send(command);
   } catch (err) {
-    console.log(err);
     return err.message;
   }
 }

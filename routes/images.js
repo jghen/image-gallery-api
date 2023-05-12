@@ -27,6 +27,10 @@ router.get("/", async function (req, res, next) {
     return notFoundError("Error:" + err.message + " Images", res);
   }
 
+  if (!imageUrls) {
+    return notFoundError("images", res);
+  }
+
   // Encode Urls
   const encodedUrls = await imageUrls?.map((obj) => encodeURI(obj));
 
@@ -63,7 +67,6 @@ router.post(
     const { file } = req;
     const { title, subtitle, text } = req.body;
     const {imageId} = req.params;
-    console.log('--this is req.file after upload:',file)
 
     if (!file) return notProvidedError("file", res);
     if (!imageId) return notProvidedError("imageId", res);
@@ -72,9 +75,7 @@ router.post(
     let imageBlurHash;
     try {
       imageBlurHash = await encodeImageToBlurhash(file.path);
-      console.log('--imageBlurHash',imageBlurHash);
     } catch (error) {
-      console.log(error.message)
       imageProcessingError('Cannot make blurhash');
     }
 
@@ -82,9 +83,7 @@ router.post(
     let resized;
     try {
       resized = await resizeImage(file.path);
-      console.log('--resized',resized);
     } catch (error) {
-      console.log(error.message);
       imageProcessingError('Cannot resize');
     }
 
@@ -96,7 +95,6 @@ router.post(
     let s3_image = null;
     try {
       s3_image = await uploadImage(resized, imageId);
-      console.log(s3_image);
     } catch (error) {
       return res.jsend.fail({
         result: {},
@@ -104,6 +102,8 @@ router.post(
         error: error.message,
       });
     }
+
+    
 
     if(!s3_image) {
       return notValidError('file', res);
@@ -118,7 +118,6 @@ router.post(
         subtitle,
         text
       );
-      console.log('db_image:',db_image);
     } catch (err) {
       return res.jsend.fail({
         result: {},
@@ -154,9 +153,7 @@ router.delete(
     let deleted_db = null;
     try {
       deleted_db = await imageService.deleteOne(key);
-      console.log('deleted_db1',deleted_db);
     } catch (err) {
-      console.log(err);
       return res.jsend.fail({
         result: { deleted_db: deleted_db },
         message: `unable to delete image with id: ${key}`,
@@ -166,7 +163,6 @@ router.delete(
 
     //if not deleted - error
     if (!deleted_db) {
-      console.log('deletedDb2:',deleted_db);
       return deleteError("image from database", res);
     }
 
@@ -175,15 +171,12 @@ router.delete(
     try {
       deleted_s3 = await deleteImage(key);
     } catch (err) {
-      console.log(err);
       return res.jsend.fail({
         result: {},
         message: `unable to delete image with id: ${key}`,
         error: err.message,
       });
     }
-
-    console.log("deleteds3", deleted_s3);
 
     if (!deleted_s3) {
       return deleteError("image from AWS s3", res);
