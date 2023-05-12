@@ -21,7 +21,9 @@ router.post("/logout", authorize, async (req, res, next) => {
 });
 
 //create user - Sign up
-router.post( "/signup", jsonParser, validateEmail, validateName, validatePassword, async (req, res, next) => {
+//NB! authorize middleware is on - so no one can sign up!
+
+router.post( "/signup", authorize, jsonParser, validateEmail, validateName, validatePassword, async (req, res, next) => {
   const { name, email, password } = req.body;
 
   var salt = crypto.randomBytes(16);
