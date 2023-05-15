@@ -85,7 +85,7 @@ async function getOneImage(key) {
   return await getSignedUrl(getClient(), command, { expiresIn: 36000 });
 }
 
-//get all
+//get all 
 async function getAllImages() {
   //get all
   let images;
