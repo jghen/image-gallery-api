@@ -73,7 +73,7 @@ router.get("/", async function (req, res, next) {
     imageData: imageData,
   };
 
-  res.setHeader("Cache-Control", "max-age=31536000"); //1 year cache
+  // res.setHeader("Cache-Control", "max-age=31536000"); //1 year cache
 
   return res.jsend.success({ result: result, message: "retrieved all images" });
 });
