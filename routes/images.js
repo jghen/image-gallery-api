@@ -14,6 +14,7 @@ const {
   uploadImage,
   deleteImage,
   getAllImages,
+  getOneImage,
 } = require("../services/S3Service.js");
 //middleware:
 const {
@@ -78,13 +79,56 @@ router.get("/", async function (req, res, next) {
   return res.jsend.success({ result: result, message: "retrieved all images" });
 });
 
+//get one
+router.get("/:imageId", validateImageId, async function (req, res, next) {
+  const { imageId } = req.params;
+
+  //get s3 signed image Url
+  let imageUrl = null;
+  try {
+    imageUrl = await getOneImage(imageId);
+  } catch (err) {
+    console.log("--err:", err?.message);
+    return notFoundError("Error:" + err.message + " Image", res);
+  }
+
+  if (!imageUrl) {
+    return notFoundError("image", res);
+  }
+
+  // Encode Url
+  const encodedUrl = encodeURI(imageUrl);
+
+  //get image data from db
+  let imageData = null;
+  try {
+    imageData = await imageService.getOneById(imageUrl);
+  } catch (err) {
+    console.log("--err:", err.message);
+    return notFoundError("Error:" + err.message + " Image Data", res);
+  }
+
+  if (!imageData || !encodedUrl) {
+    console.log('imageData or encodedUrl not found');
+    return notFoundError("images", res);
+  }
+
+  const result = {
+    encodedUrl: encodedUrl,
+    imageData: imageData,
+  };
+
+  // res.setHeader("Cache-Control", "max-age=31536000"); //1 year cache
+  return res.jsend.success({ result: result, message: "retrieved all images" });
+});
+
 //upload image
 router.post(
   "/:imageId",
   authorize,
   upload.single("image"),
   validateUserId,
-  // validateImageId(uuidValidate),
+  validateImageId,
   validateFileInfo,
   validateImage,
   async (req, res, next) => {
@@ -173,7 +217,7 @@ router.delete(
   jsonParser,
   authorize,
   validateUserId,
-  // validateKey(uuidValidate),
+  validateKey,
   async function (req, res, next) {
     const { key } = req.params; //this is now the key
 

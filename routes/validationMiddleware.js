@@ -22,35 +22,29 @@ module.exports = {
     next();
   },
 
-  validateImageId: (uuidValidate) =>
-    async function (req, res, next) {
-      const { imageId } = req.params;
+  validateImageId: async function (req, res, next) {
+    const { imageId } = req.params;
+    const fileExtension = imageId.split('.').slice(-1).join('');
+    const allowedExt = ["jpg", "jpeg", "png", "gif"];
 
-      if (!uuidValidate(imageId)) {
-        return notValidError("imageId", res);
-      }
+    if(!allowedExt.includes(fileExtension)) {
+      return notValidError("imageId", res);
+    }
 
-      if (imageId == null) {
-        return notProvidedError("imageId", res);
-      }
+    if (imageId == null) {
+      return notProvidedError("imageId", res);
+    }
 
-      next();
-    },
+    next();
+  },
 
-    validateKey: (uuidValidate) =>
-    async function (req, res, next) {
+    validateKey: async function (req, res, next) {
       const { key } = req.params;
-      const splittedKey = key.split('.');
-      const imageId = splittedKey[0];
-      const fileExtension = splittedKey.slice(-1).join('');
+      const fileExtension = key.split('.').slice(-1).join('');
       const allowedExt = ["jpg", "jpeg", "png", "gif"];
 
       if(!allowedExt.includes(fileExtension)) {
         return notValidError("key", res);
-      }
-
-      if (!uuidValidate(imageId)) {
-        return notValidError("key (uuid)", res);
       }
 
       if (key == null) {

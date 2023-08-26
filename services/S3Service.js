@@ -68,7 +68,7 @@ async function uploadImage (buffer, key) {
   const input = {
     Bucket: bucket,
     Key: key,
-    Body: buffer //should be blob?
+    Body: buffer
   };
   const command = new PutObjectCommand(input);
   return await getClient().send(command);
