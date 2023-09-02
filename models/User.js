@@ -25,6 +25,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.DataTypes.BLOB,
         allowNull: false,
       },
+
+      refreshToken: {
+        type: Sequelize.DataTypes.string,
+      }
     },
     {
       timestamps: false,
